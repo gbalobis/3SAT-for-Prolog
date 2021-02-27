@@ -2,56 +2,40 @@
 
 :- module( formula,
            [
-               empty_formula/1,
+               nonEmptyFormula/1,
                assign/4,
-               has_variables/3
+               hasVariables/3
            ]
          )
 .
 
-empty_formula(List):-
-maplist(dif([]), List).
-
-assign(Var, Val, Formula, Reduced_formula) :-
-    get_val(Var, Val, Neg, Pos),
-    reduce_conjuncts(Neg, Pos, Formula, Reduced_formula)
-    .
-reduce_conjuncts(Neg_val, Pos_val, Formula, New_formula) :-
-    maplist(exclude(=(Neg_val)), Formula, No_Lit),
-    empty_formula(No_Lit),
-    remove_conjuncts(Pos_val, No_Lit, New_formula)
-    .
-get_val(Var, Val, Neg_val, Pos_val) :-
-    Val = true ->
-    Neg_val = -Var,
-    Pos_val = +Var;
-    Neg_val = +Var,
-    Pos_val = -Var
-    .
-
-remove_conjuncts(_, [], [])
-.
-remove_conjuncts(Var, [H|T], L) :-
-    remove_conjuncts(Var, T, Nl),
-    (
-        memberchk(Var, H) -> true,
-        L = Nl;
-        L = [H|Nl]
-    ).
-
-get_conjuncts([], [], [])
-.
-get_conjuncts([C|Cs], [V|Vs], [T|Ts]) :-
-    get_atom(C, Var_List, Truths),
-    V = Var_List,
-    T = Truths,
-    get_conjuncts(Cs, Vs, Ts)
+/*
+assign
+Produces a new formula ReducedFormula, based on an original Formula,
+but simplified according to the given choice of variable value. Var is an atom
+specifying the variable name. Val is either the true atom or the false atom.
+*/
+assign(Var, Val, Formula, ReducedFormula) :-
+    getVal(Var, Val, Neg, Pos),
+    reduceConjuncts(Neg, Pos, Formula, ReducedFormula)
     . 
 
-get_atom([], [], [])
+reduceConjuncts(NegVal, PosVal, Formula, NewFormula) :-
+    maplist(exclude(=(NegVal)), Formula, NoLit),
+    nonEmptyFormula(NoLit),
+    removeConjuncts(PosVal, NoLit, NewFormula)
+    .
+
+
+
+/*
+getAtom
+Helper function for hasVariables
+*/
+getAtom([], [], [])
 .
-get_atom([H1|T1], Vars, Truths) :-
-    get_atom(T1, Vs, Ts),
+getAtom([H1|T1], Vars, Truths) :-
+    getAtom(T1, Vs, Ts),
     (
         compound_name_arguments(H1, T, V),
         (
@@ -61,4 +45,57 @@ get_atom([H1|T1], Vars, Truths) :-
         ),
         append(V, Vs, Vars)
     )
-    .
+. 
+/*
+getVal
+Sets the positive or negative value of the atom
+*/
+getVal(Var, Val, NegVal, PosVal) :-
+    Val = true ->
+    NegVal = -Var,
+    PosVal = +Var;
+    NegVal = +Var,
+    PosVal = -Var
+. 
+/*
+hasVariables
+Creates 2 lists, Var_List with the atoms and Truth_List with the
+truth assignments
+*/
+
+hasVariables([], [], [])
+. 
+
+hasVariables([C|Cs], [V|Vs], [T|Ts]) :-
+
+    getAtom(C, VarList, Truths),
+    V = VarList,
+    T = Truths,
+    hasVariables(Cs, Vs, Ts)
+. 
+
+
+/*
+nonEmptyFormula
+checks to see if the list is empty, returns false if so
+otherwise returns true
+*/
+nonEmptyFormula(List):-
+    maplist(dif([]), List).
+
+/*
+removeConjunct
+removes the head of the list
+*/
+removeConjuncts(_, [], [])
+.
+removeConjuncts(Var, [H|T], L) :-
+    removeConjuncts(Var, T, Nl),
+    (
+        memberchk(Var, H) -> true,
+        L = Nl;
+        L = [H|Nl]
+    ).
+
+
+
